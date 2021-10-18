@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from args import get_parser
 from utils.utils import batch_to_var, batch_to_var_test, make_dir, outs_perms_to_cpu, load_checkpoint, check_parallel
 from modules.model import RSIS, FeatureExtractor
-from test import test
+from test import test,test_ela
 from dataloader.dataset_utils import sequence_palette
 from PIL import Image
 from scipy.misc import imread
@@ -21,6 +21,7 @@ import sys, os
 import json
 import pdb
 from misc.config import cfg
+from torch.autograd import Variable
 
 class Evaluate():
 
@@ -34,7 +35,7 @@ class Evaluate():
 
         image_transforms = transforms.Compose([to_tensor,normalize])
         #image_transforms = transforms.Compose([to_tensor])
-        if args.dataset == 'davis2016':
+        if args.dataset == 'davis2016' or args.dataset == 'davis2016_vi':
             dataset = get_dataset(args,
                                 split=self.split,
                                 image_transforms=image_transforms,
@@ -42,7 +43,8 @@ class Evaluate():
                                 augment=args.augment and self.split == 'train',
                                 inputRes = (240,427),
                                 video_mode = True,
-                                use_prev_mask = False)
+                                use_prev_mask = False,
+                                use_ela=True)
         else: #args.dataset == 'youtube'
             dataset = get_dataset(args,
                                 split=self.split,
@@ -65,7 +67,7 @@ class Evaluate():
         load_args.use_gpu = args.use_gpu
         self.encoder = FeatureExtractor(load_args)
         self.decoder = RSIS(load_args)
-
+        #pdb.set_trace()
         print(load_args)
 
         if args.ngpus > 1 and args.use_gpu:
@@ -116,28 +118,17 @@ class Evaluate():
 
         if self.split == 'val':
             
-            if args.dataset == 'youtube':
 
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results')
-                    make_dir(results_dir)
-            
-                json_data = open('../../databases/YouTubeVOS/train/train-val-meta.json')
-                data = json.load(json_data)
-                
-            else:
-
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_'+cfg.PATH.SEQUENCES.split('/')[-3])
-                #masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess-davis')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results-'+cfg.PATH.SEQUENCES.split('/')[-3])
-                    make_dir(results_dir)
+            masks_sep_dir = os.path.join('../models', args.model_name, 'masks_'+cfg.PATH.SEQUENCES.split('/')[-3])
+            #masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess-davis')
+            make_dir(masks_sep_dir)
+            if args.overlay_masks:
+                results_dir = os.path.join('../models', args.model_name, 'results-'+cfg.PATH.SEQUENCES.split('/')[-3])
+                make_dir(results_dir)
 
 
-            for batch_idx, (inputs, targets,seq_name,starting_frame) in enumerate(self.loader):
+
+            for batch_idx, (inputs, targets,seq_name,starting_frame, imgs_ela) in enumerate(self.loader):
                 
                 prev_hidden_temporal_list = None
                 max_ii = min(len(inputs),args.length_clip)
@@ -155,16 +146,17 @@ class Evaluate():
                     #                y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
                     #                sw_mask: this mask indicates which masks from y_mask are valid
                     x, y_mask, sw_mask = batch_to_var(args, inputs[ii], targets[ii])
-
+                    x_ela = Variable(imgs_ela[ii],requires_grad=False).cuda()
+                    #x_cat = torch.cat([x,x_ela], 1)
+                    #x_cat = x_ela
                     print(seq_name[0] + '/' + '%05d' % (starting_frame[0] + ii))
                     
                     #from one frame to the following frame the prev_hidden_temporal_list is updated.
-                    outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list)
+                    outs, hidden_temporal_list = test_ela(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
+                    #outs, hidden_temporal_list = test_edge(args, self.encoder, self.decoder, x_cat, prev_hidden_temporal_list)
 
-                    if args.dataset == 'youtube':
-                        num_instances = len(data['videos'][seq_name[0]]['objects'])
-                    else:
-                        num_instances = int(torch.sum(sw_mask.data).data.cpu().numpy())
+
+                    num_instances = int(torch.sum(sw_mask.data).data.cpu().numpy())
 
                     x_tmp = x.data.cpu().numpy()
                     height = x_tmp.shape[-2]
@@ -177,7 +169,9 @@ class Evaluate():
                         mask2assess[indxs_instance] = 255
                         toimage(mask2assess, cmin=0, cmax=255).save(
                             base_dir_masks_sep + '%05d_instance_%02d.png' % (starting_frame[0] + ii, t))
-                
+                        #pdb.set_trace()
+                        #toimage(mask_pred*255, cmin=0, cmax=255).save(base_dir_masks_sep + '%05d_rawscore_%02d.png' % (starting_frame[0] + ii, t))
+                        np.save(base_dir_masks_sep + '%05d_rawscore_%02d.npy' % (starting_frame[0] + ii, t),mask_pred)
                     if args.overlay_masks:
 
                         frame_img = x.data.cpu().numpy()[0,:,:,:].squeeze()
@@ -211,26 +205,15 @@ class Evaluate():
             
         else:
             
-            if args.dataset == 'youtube':
 
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess_val')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results_val')
-                    make_dir(results_dir)
-                
-                json_data = open('../../databases/YouTubeVOS/val/meta.json')
-                data = json.load(json_data)
-                
-            else:
-
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess_val_davis')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results_val_davis')
-                    make_dir(results_dir)
+            masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess_val_davis')
+            make_dir(masks_sep_dir)
+            if args.overlay_masks:
+                results_dir = os.path.join('../models', args.model_name, 'results_val_davis')
+                make_dir(results_dir)
         
             for batch_idx, (inputs,seq_name,starting_frame) in enumerate(self.loader):
+
                 
                 prev_hidden_temporal_list = None
                 max_ii = min(len(inputs),args.length_clip)
@@ -244,21 +227,18 @@ class Evaluate():
                     
                     if ii==0:
                         
-                        if args.dataset == 'youtube':
-                            
-                            num_instances = len(data['videos'][seq_name[0]]['objects'])
+
                         
-                        else:
-                        
-                            annotation = Image.open('../databases/DAVIS2016/Annotations/480p/' + seq_name[0] + '/00000.png')
-                            instance_ids = sorted(np.unique(annotation))
-                            instance_ids = instance_ids if instance_ids[0] else instance_ids[1:]
-                            if len(instance_ids) > 0:
-                                instance_ids = instance_ids[:-1] if instance_ids[-1]==255 else instance_ids
-                            num_instances = len(instance_ids)
+                        annotation = Image.open('../databases/DAVIS2016/Annotations/480p/' + seq_name[0] + '/00000.png')
+                        instance_ids = sorted(np.unique(annotation))
+                        instance_ids = instance_ids if instance_ids[0] else instance_ids[1:]
+                        if len(instance_ids) > 0:
+                            instance_ids = instance_ids[:-1] if instance_ids[-1]==255 else instance_ids
+                        num_instances = len(instance_ids)
                     
                     #from one frame to the following frame the prev_hidden_temporal_list is updated.
-                    outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list)
+                    #outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list)
+                    outs, hidden_temporal_list = test_ela(args, self.encoder, self.decoder, x, prev_hidden_temporal_list)
 
                     base_dir_masks_sep = masks_sep_dir + '/' + seq_name[0] + '/'
                     make_dir(base_dir_masks_sep)
@@ -278,7 +258,6 @@ class Evaluate():
                         mask2assess[indxs_instance] = 255
                         toimage(mask2assess, cmin=0, cmax=255).save(
                             base_dir_masks_sep + '%05d_instance_%02d.png' % (starting_frame[0] + ii, t))
-
                     if args.overlay_masks:
 
                         frame_img = x.data.cpu().numpy()[0,:,:,:].squeeze()

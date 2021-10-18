@@ -63,7 +63,7 @@ def init_dataloaders(args):
                                 inputRes = (256,448),
                                 video_mode = True,
                                 use_prev_mask = False)
-
+        
         loaders[split] = data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True,
                                          num_workers=args.num_workers,
@@ -96,10 +96,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
         decoder.train(False)
     feats = encoder(x,x_ela=x_ela)
     feats1 = encoder(x1,x_ela=x1_ela)
-    #feats = encoder(x, raw=True)
-    #feats1 = encoder(x1,raw=True)
-    #feats = encoder(x)
-    #feats1 = encoder(x1)
+
     scores = torch.ones(y_mask.size(0),args.gt_maxseqlen,args.maxseqlen)
 
     hidden_temporal_list = []
@@ -117,7 +114,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
         else:
             hidden_temporal = None
             hidden_temporal1 = None
-        #pdb.set_trace()
+        
         #The decoder receives two hidden state variables: hidden_spatial (a tuple, with hidden_state and cell_state) which refers to the
         #hidden state from the previous object instance from the same time instant, and hidden_temporal which refers to the hidden state from the same
         #object instance from the previous time instant.
@@ -141,35 +138,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
         out_mask = upsample_match(out_mask)
         #
         out_mask1 = upsample_match(out_mask1)
-        #
-        #if t>0:
-            #out_mask_data = (torch.sigmoid(out_mask)>0.5).type(torch.cuda.FloatTensor).data.view(out_mask.size(0),1, -1)
-            #pdb.set_trace()
-            #y_pred_i = torch.max(y_masks[-1]-out_mask_data,torch.zeros(out_mask_data.size()).cuda())
-            #y_masks.append(y_pred_i)
-        if False:
 
-            
-
-            out_mask1 = out_mask1.view(out_mask1.size(0), -1)
-            edge_mask = upsample_match(edge_mask)
-            edge_mask = edge_mask.view(edge_mask.size(0), -1)
-            edge_mask1 = upsample_match(edge_mask1)
-            edge_mask1 = edge_mask1.view(edge_mask1.size(0), -1)
-            edge_masks.append(edge_mask)
-            edge_masks1.append(edge_mask1)
-
-            # repeat predicted mask as many times as elements in ground truth.
-            # to compute iou against all ground truth elements at once
-            y_pred_i = out_mask.unsqueeze(0)
-            y_pred_i = y_pred_i.permute(1,0,2)
-            y_pred_i = y_pred_i.repeat(1,y_mask.size(1),1)
-            y_pred_i = y_pred_i.view(y_mask.size(0)*y_mask.size(1),y_mask.size(2))
-            y_true_p = y_mask.view(y_mask.size(0)*y_mask.size(1),y_mask.size(2))
-
-            c = args.iou_weight * softIoU(y_true_p, y_pred_i)
-            c = c.view(sw_mask.size(0),-1)
-            scores[:,:,t] = c.cpu().data
 
         # get predictions in list to concat later
         out_masks.append(out_mask)
@@ -179,9 +148,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
 
     # concat all outputs into single tensor to compute the loss
     t = len(out_masks)
-    #pdb.set_trace()
-    #out_masks = torch.cat(out_masks,1).view(out_mask.size(0),t, -1)
-    #out_masks1 = torch.cat(out_masks1,1).view(out_mask1.size(0),t, -1) 
+
     if args.maxseqlen<2:
         out_masks = torch.cat(out_masks,1).view(out_mask.size(0),t, -1)
         out_masks1 = torch.cat(out_masks1,1).view(out_mask1.size(0),t, -1) 
@@ -191,10 +158,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
     else:
         out_masks = decoder.module.conv_out(torch.cat(out_masks,1)).view(out_mask.size(0),1, -1)
         out_masks1 = decoder.module.conv_out(torch.cat(out_masks1,1)).view(out_mask1.size(0),1, -1)
-        #out_masks = torch.cat(out_masks,1).view(out_mask.size(0),t, -1)
-        #out_masks1 = torch.cat(out_masks1,1).view(out_mask1.size(0),t, -1)
-    #edge_masks = torch.cat(edge_masks,1).view(edge_mask.size(0),len(edge_masks), -1)
-    #edge_masks1 = torch.cat(edge_masks1,1).view(edge_mask1.size(0),len(edge_masks1), -1)
+
 
     #First frame prediction is compared with first frame ground truth to decide a matching between them by using the hungarian
     #algorithm based on the scores computed before. That matching is considered as right and is applied to the following frames in the sequences.
@@ -236,7 +200,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
             y_mask_perm = y_mask_perm.contiguous()
     else:
         y_mask_perm = y_mask 
-        #y_mask_perm = torch.cat(y_masks,1).view(y_mask.size(0),t, -1)
+
         y_edge_perm = y_edge
 
 
@@ -248,8 +212,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
     loss_mask_iou1 = mask_siou(y_mask_perm.view(-1,y_mask_perm.size()[-1]),out_masks1.view(-1,out_masks1.size()[-1]))
     loss_mask_iou1 = torch.mean(loss_mask_iou1)
 
-    #loss_mask_iou += torch.mean(mask_siou(y_mask.view(-1,y_mask.size()[-1]),out_masks_f.view(-1,out_masks_f.size()[-1])))
-    #loss_mask_iou1 += torch.mean(mask_siou(y_mask.view(-1,y_mask.size()[-1]),out_masks1_f.view(-1,out_masks1_f.size()[-1])))
+
 
 
     if False:
@@ -264,14 +227,6 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
 
     else:
         loss += args.iou_weight * loss_mask_iou + args.iou_weight * loss_mask_iou1 #+ loss_edge_iou +loss_edge_iou1
-    #pdb.set_trace()
-    #feat_mask1 = y_mask_perm.clone().resize_(feats[0].shape[0],1,feats[0].shape[-2],feats[0].shape[-1])
-    #loss += (torch.abs(feats[0]-feats1[0])*(1-feat_mask1)).sum()/((1-feat_mask1).sum()*feats[0].shape[1])
-    #feat_mask2 = y_mask_perm.clone().resize_(feats[1].shape[0],1,feats[1].shape[-2],feats[1].shape[-1])
-    #loss += (torch.abs(feats[1]-feats1[1])*(1-feat_mask2)).sum()/((1-feat_mask2).sum()*feats[1].shape[1])
-    #feat_mask3 = y_mask_perm.clone().resize_(feats[2].shape[0],1,feats[2].shape[-2],feats[2].shape[-1])
-    #loss += (torch.abs(feats[2]-feats1[2])*(1-feat_mask3)).sum()/((1-feat_mask3).sum()*feats[2].shape[1])
-    #loss += torch.mean(torch.abs((feats[3]-feats1[3])*(1-y_mask_perm.clone().resize_(feats[3].shape[0],1,feats[3].shape[-2],feats[3].shape[-1]))))
     if last_frame:
         enc_opt.zero_grad()
         dec_opt.zero_grad()
@@ -284,11 +239,9 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
             if args.update_encoder:
                 enc_opt.step()
 
-    #pytorch 0.4
-    #losses = [loss.data[0], loss_mask_iou.data[0]]
     #pytorch 1.0
     losses = [loss.data.item(), loss_mask_iou.data.item()]
-    #pdb.set_trace()
+
     out_masks = torch.sigmoid(out_masks)
     outs = out_masks.data
     out_masks1 = torch.sigmoid(out_masks1)
@@ -363,8 +316,7 @@ def trainIters(args):
     scheduler = torch.optim.lr_scheduler.StepLR(enc_opt, step_size=30, gamma=0.1)
     if not args.log_term:
         print ("Training logs will be saved to:", os.path.join(model_dir, 'train.log'))
-        #sys.stdout = open(os.path.join(model_dir, 'train.log'), 'w')
-        #sys.stderr = open(os.path.join(model_dir, 'train.err'), 'w')
+
 
     print (args)
 
@@ -381,13 +333,7 @@ def trainIters(args):
         decoder = torch.nn.DataParallel(decoder, device_ids=range(args.ngpus))
         encoder = torch.nn.DataParallel(encoder, device_ids=range(args.ngpus))
         mask_siou = torch.nn.DataParallel(mask_siou, device_ids=range(args.ngpus))
-        #edge_bce = torch.nn.DataParallel(edge_bce, device_ids=range(args.ngpus))
 
-        #torch.distributed.init_process_group(backend="nccl", init_method='env://')
-        #decoder = torch.nn.parallel.DistributedDataParallel(decoder,device_ids=[args.local_rank],output_device=args.local_rank)
-        #encoder = torch.nn.parallel.DistributedDataParallel(encoder,device_ids=[args.local_rank],output_device=args.local_rank)
-        #mask_siou = torch.nn.parallel.DistributedDataParallel(mask_siou,device_ids=[args.local_rank],output_device=args.local_rank)
-        #edge_bce = torch.nn.parallel.DistributedDataParallel(edge_bce,device_ids=range(args.ngpus))
 
 
     crits = mask_siou
@@ -427,11 +373,11 @@ def trainIters(args):
 
         # we validate after each epoch
         for split in ['train', 'val']:
-            if args.dataset == 'davis2016' or args.dataset == 'youtube' or args.dataset == 'davis2016_vi':
+            if args.dataset == 'davis2016' or args.dataset == 'davis2016_vi':
                 for batch_idx, (inputs,inputs1, inputs_org, targets,seq_name,starting_frame, imgs_flow,imgs_ela,imgs1_ela) in enumerate(loaders[split]):
                 #for batch_idx, (inputs,inputs1, inputs_org, targets,seq_name,starting_frame, imgs_flow) in enumerate(loaders[split]):
                     # send batch to GPU
-                    #pdb.set_trace()
+                 
                     prev_hidden_temporal_list = None
                     prev_hidden_temporal_list1 = None
                     permutation = None
@@ -447,15 +393,12 @@ def trainIters(args):
                         #                y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
                         #                sw_mask: this mask indicates which masks from y_mask are valid
                         x, x1, y_mask, sw_mask = batch_to_var_vi(args, inputs[ii],inputs1[ii], targets[ii], input_org=None)
-                        #y_edge = Variable(targets_edge[ii],requires_grad=False).cuda()
-                        #pdb.set_trace()
                         target_edge = y_mask.view(y_mask.shape[0],y_mask.shape[1],x.shape[-2],x.shape[-1])
                         target_edge = torch.clamp(F.conv2d(target_edge, kernel_tensor, padding=(2, 2)), 0, 1) * torch.clamp(F.conv2d((1-target_edge).float(), kernel_tensor, padding=(2, 2)), 0, 1)
                         y_edge = Variable(target_edge.view(y_mask.shape),requires_grad=False).cuda()
                         x_ela = Variable(imgs_ela[ii],requires_grad=False).cuda()
                         x1_ela = Variable(imgs1_ela[ii],requires_grad=False).cuda()
-                        #x_cat = torch.cat([x,x_ela], 1)
-                        #x1_cat = torch.cat([x1,x1_ela], 1)
+
 
                         #From one frame to the following frame the prev_hidden_temporal_list is updated.
                         loss, losses, outs, outs1, permutation, hidden_temporal_list, hidden_temporal_list1, outs_edge= runIter(args, encoder, decoder, x, x_ela, x1, x1_ela, y_mask,y_edge, sw_mask,
@@ -480,13 +423,9 @@ def trainIters(args):
                             writer.add_image('images_ela', x_ela_im, tensorboard_step)
 
                             writer.add_image('prediction', x_o, tensorboard_step)
-                            #writer.add_image('refine', x_r, tensorboard_step)
+
                             writer.add_image('masks', x_m, tensorboard_step)    
 
-                            #x_edge = vutils.make_grid(outs_edge.view(outs_edge.shape[0],outs_edge.shape[1],x.shape[-2],x.shape[-1]), normalize=True, scale_each=True)                                        
-                            #writer.add_image('edge_pred', x_edge, tensorboard_step) 
-                            #x_edge_m = vutils.make_grid(y_edge.view(outs.shape[0],outs.shape[1],x.shape[-2],x.shape[-1]), normalize=True, scale_each=True)
-                            #writer.add_image('edge_masks', x_edge_m, tensorboard_step)
                         #Hidden temporal state from time instant ii is saved to be used when processing next time instant ii+1
                         prev_hidden_temporal_list = hidden_temporal_list
                         prev_hidden_temporal_list1 = hidden_temporal_list1

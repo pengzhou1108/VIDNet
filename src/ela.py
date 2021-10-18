@@ -26,9 +26,9 @@ def ela(im):
     return ela_im
 
 if __name__ == "__main__":
-    davis_train = glob.glob('/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/train/*/*.png')
-    davis_test = glob.glob('/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/val/*/*.png')
-    out_dir ='/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/ela'
+    davis_train = glob.glob('../../model/opn-demo/vi_davis/train/*/*.png') # FIXME
+    davis_test = glob.glob('../../model/opn-demo/vi_davis/val/*/*.png')# FIXME
+    out_dir ='../../model/opn-demo/vi_davis/ela'
     for file in davis_train+davis_test:
 
         im = Image.open(file)

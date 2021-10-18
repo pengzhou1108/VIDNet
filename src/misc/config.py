@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 import yaml
 
-# ----------------------------------------------------------------------------
-# The 2017 DAVIS Challenge on Video Object Segmentation
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017 Federico Perazzi
-# Licensed under the BSD License [see LICENSE for details]
-# Written by Federico Perazzi (federico@disneyresearch.com)
-# Adapted from FAST-RCNN (Ross Girshick)
-# ----------------------------------------------------------------------------
-
 """ Configuration file."""
 
 import os
@@ -49,7 +40,7 @@ __C.PHASE = phase.VAL
 __C.MULTIOBJECT = True
 
 # Root folder of project
-__C.PATH.ROOT = osp.abspath('../../rvos/')
+__C.PATH.ROOT = osp.abspath('../../VIDNet/')
 
 # Data folder
 __C.PATH.DATA = osp.abspath('../databases/DAVIS2016/')
@@ -57,10 +48,10 @@ __C.PATH.DATA = osp.abspath('../databases/DAVIS2016/')
 # Path to input images
 __C.PATH.ORIGINAL = osp.join(__C.PATH.DATA,"JPEGImages",__C.RESOLUTION)
 
-#__C.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/train'
-__C.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/train'
+__C.PATH.SEQUENCES2 = '/#FIXME/model/Deep-Video-Inpainting/results/vi_davis'#FIXME
+__C.PATH.SEQUENCES = '/#FIXME/model/opn-demo/vi_davis' #FIXME
 
-__C.PATH.FLOW = '/vulcan/scratch/pengzhou/model/flownet2-pytorch/result/inference/run.epoch-0-flow-field'
+__C.PATH.FLOW = '../../flownet2-pytorch/result/inference/run.epoch-0-flow-field'
 
 # Path to annotations
 __C.PATH.ANNOTATIONS = osp.join(__C.PATH.DATA,"Annotations",__C.RESOLUTION)

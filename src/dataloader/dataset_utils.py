@@ -27,7 +27,7 @@ def random_noise(img,dB=20.0):
     img = Image.fromarray(img.astype(np.uint8))
     return img
 def ela(im,name='resaved'):
-    resaved = '/vulcan/scratch/pengzhou/model/rvos/scripts/{}.jpg'.format(name)
+    resaved = './{}.jpg'.format(name)
     ela = 'ela.png'
 
 
@@ -69,8 +69,7 @@ def get_dataset(args, split, image_transforms = None, target_transforms = None, 
 
     if args.dataset =='davis2017' or args.dataset =='davis2016':
         from .davis2017 import DAVISLoader as MyChosenDataset
-    elif args.dataset == 'youtube':
-        from .youtubeVOS import YoutubeVOSLoader as MyChosenDataset
+
     elif args.dataset =='davis2016_vi':
         from .davis2017_vi import DAVISLoader as MyChosenDataset
     

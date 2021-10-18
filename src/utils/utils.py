@@ -165,15 +165,11 @@ def save_checkpoint_prev_inference_mask(args, encoder, decoder, enc_opt, dec_opt
 
 def load_checkpoint(model_name,use_gpu=True,epoch=None):
     if use_gpu:
-        encoder_dict = torch.load(os.path.join('../models',model_name,'encoder_33.pt'))
-        decoder_dict = torch.load(os.path.join('../models',model_name,'decoder_33.pt'))
-        enc_opt_dict = torch.load(os.path.join('../models',model_name,'enc_opt_33.pt'))
-        dec_opt_dict = torch.load(os.path.join('../models',model_name,'dec_opt_33.pt'))
 
-        #encoder_dict = torch.load(os.path.join('../models',model_name,'encoder.pt'))
-        #decoder_dict = torch.load(os.path.join('../models',model_name,'decoder.pt'))
-        #enc_opt_dict = torch.load(os.path.join('../models',model_name,'enc_opt.pt'))
-        #dec_opt_dict = torch.load(os.path.join('../models',model_name,'dec_opt.pt'))
+        encoder_dict = torch.load(os.path.join('../models',model_name,'encoder.pt'))
+        decoder_dict = torch.load(os.path.join('../models',model_name,'decoder.pt'))
+        enc_opt_dict = torch.load(os.path.join('../models',model_name,'enc_opt.pt'))
+        dec_opt_dict = torch.load(os.path.join('../models',model_name,'dec_opt.pt'))
     else:
         encoder_dict = torch.load(os.path.join('../models',model_name,'encoder.pt'), map_location=lambda storage, location: storage)
         decoder_dict = torch.load(os.path.join('../models',model_name,'decoder.pt'), map_location=lambda storage, location: storage)

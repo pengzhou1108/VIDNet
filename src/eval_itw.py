@@ -200,37 +200,23 @@ class Evaluate():
 
         if self.split == 'val':
             
-            if args.dataset == 'youtube':
 
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results')
-                    make_dir(results_dir)
-            
-                json_data = open('../../databases/YouTubeVOS/train/train-val-meta.json')
-                data = json.load(json_data)
-                
-            else:
 
-                masks_sep_dir = os.path.join('../models', args.model_name, 'masks_'+args.frames_path.split('/')[-3])
-                #masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess-davis')
-                make_dir(masks_sep_dir)
-                if args.overlay_masks:
-                    results_dir = os.path.join('../models', args.model_name, 'results-'+args.frames_path.split('/')[-3])
-                    make_dir(results_dir)
-            #files = glob.glob('/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/test_outputs/epoch_0/test_object_like/*')
-            #files = glob.glob('/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/FVI/Test/JPEGImages/*')
-            files = glob.glob('/vulcan/scratch/pengzhou/model/rvos/databases/DAVIS2016/JPEGImages/480p/*')
+            masks_sep_dir = os.path.join('../models', args.model_name, 'masks_'+args.frames_path.split('/')[-3])
+            #masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess-davis')
+            make_dir(masks_sep_dir)
+            if args.overlay_masks:
+                results_dir = os.path.join('../models', args.model_name, 'results-'+args.frames_path.split('/')[-3])
+                make_dir(results_dir)
+            files = glob.glob('../../model/Free-Form-Video-Inpainting/FVI/Test/JPEGImages/*') #FIXME
             for seq_names in files:
-                #pdb.set_trace()
+                
                 seq_name = seq_names.split('/')[-1]
                 seq = Sequence(args, seq_name)
                 seq_name = [seq_name]
                 for ii, (img,img_ela,name) in enumerate(zip(seq.imgs_data,seq.imgs_ela_data,seq.imgnames)):
                     prev_hidden_temporal_list = None
-                    #max_ii = min(len(inputs),args.length_clip)
-                    #pdb.set_trace()
+
                     base_dir_masks_sep = masks_sep_dir + '/' + seq_name[0] + '/'
                     make_dir(base_dir_masks_sep)
 
@@ -255,10 +241,8 @@ class Evaluate():
                     outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
                     #outs, hidden_temporal_list = test_edge(args, self.encoder, self.decoder, x_cat, prev_hidden_temporal_list)
 
-                    if args.dataset == 'youtube':
-                        num_instances = len(data['videos'][seq_name[0]]['objects'])
-                    else:
-                        num_instances = 1
+
+                    num_instances = 1
 
                     x_tmp = x.data.cpu().numpy()
                     height = x_tmp.shape[-2]

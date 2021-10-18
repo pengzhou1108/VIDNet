@@ -2,7 +2,7 @@ import argparse
 
 def get_parser():
 
-    parser = argparse.ArgumentParser(description='RIASS')
+    parser = argparse.ArgumentParser(description='VIDNet')
     parser.add_argument('-input_dim',dest='input_dim', default=3, type=int)    
     parser.add_argument('-year', dest='year', default = '2016')
     parser.add_argument('-imsize',dest='imsize', default=480, type=int)
@@ -116,9 +116,7 @@ def get_parser():
     parser.add_argument('--resize',dest='resize', action='store_true')
     parser.set_defaults(resize=False)
     parser.add_argument('-num_classes', dest='num_classes', default = 21, type=int)
-    parser.add_argument('-dataset', dest='dataset', default = 'davis2016',choices=['davis2016_vi','davis2016', 'davis2017', 'youtube'])
-    parser.add_argument('-youtube_dir', dest='youtube_dir',
-                        default='../../databases/YouTubeVOS/')
+    parser.add_argument('-dataset', dest='dataset', default = 'davis2016',choices=['davis2016_vi','davis2016', 'davis2017'])
 
     # testing
     parser.add_argument('-eval_split',dest='eval_split', default='test')

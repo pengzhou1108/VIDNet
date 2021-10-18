@@ -90,24 +90,13 @@ class MyDataset(data.Dataset):
                         img_root_dir = cfg_youtube.PATH.SEQUENCES_TRAINVAL
                         annot_root_dir = cfg_youtube.PATH.ANNOTATIONS_TRAINVAL
                 else:
-                    if self.split =='val':
-                      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/val'
-                      cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/val'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Copy-and-Paste-Networks-for-Deep-Video-Inpainting/val'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/vi_davis'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/val_mask'
-
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/test_outputs/epoch_0/test_object_like'
-                      #cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/test_outputs/epoch_0/test_object_like'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/FVI/Test/object_masks'
+                    if cfg.PATH.SEQUENCES.split('/')[-1] in ['train', 'val', 'trainval']:
+                      cfg.PATH.SEQUENCES = '/'.join(cfg.PATH.SEQUENCES.split('/')[:-1])+'/' + self.split
+                      cfg.PATH.SEQUENCES2 = '/'.join(cfg.PATH.SEQUENCES2.split('/')[:-1])+'/' + self.split    
                     else:
-                      cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/train'
-                      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/train'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/train'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/train_mask'
-                      #cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/test_outputs/epoch_0/test_object_like'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/test_outputs/epoch_0/test_object_like'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/Free-Form-Video-Inpainting/FVI/Test/object_masks'
+                      cfg.PATH.SEQUENCES = cfg.PATH.SEQUENCES + '/' + self.split
+                      cfg.PATH.SEQUENCES2 = cfg.PATH.SEQUENCES2 + '/' + self.split      
+
                     img_root_dir = cfg.PATH.SEQUENCES
                     annot_root_dir = cfg.PATH.ANNOTATIONS
 

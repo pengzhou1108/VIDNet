@@ -92,26 +92,22 @@ class MyDataset(data.Dataset):
                         img_root_dir = cfg_youtube.PATH.SEQUENCES_TRAINVAL
                         annot_root_dir = cfg_youtube.PATH.ANNOTATIONS_TRAINVAL
                 else:
-                    if self.split =='val':
-                      cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/val'
-                      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/val'
-                      #cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Copy-and-Paste-Networks-for-Deep-Video-Inpainting/val'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/vi_davis'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/val_mask'
+                    if cfg.PATH.SEQUENCES.split('/')[-1] in ['train', 'val', 'trainval']:
+                      cfg.PATH.SEQUENCES = '/'.join(cfg.PATH.SEQUENCES.split('/')[:-1])+'/' + self.split
+                      cfg.PATH.SEQUENCES2 = '/'.join(cfg.PATH.SEQUENCES2.split('/')[:-1])+'/' + self.split    
                     else:
-                      cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/train'
-                      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/train'
-                      #cfg.PATH.SEQUENCES2 = '/vulcan/scratch/pengzhou/model/Copy-and-Paste-Networks-for-Deep-Video-Inpainting/train'
-                      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/train'
-                      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/train_mask'
+                      cfg.PATH.SEQUENCES = cfg.PATH.SEQUENCES + '/' + self.split
+                      cfg.PATH.SEQUENCES2 = cfg.PATH.SEQUENCES2 + '/' + self.split
+
                     img_root_dir = cfg.PATH.SEQUENCES
-                    img_ela_dir = '/'.join(cfg.PATH.SEQUENCES.split('/')[:-1])+'/ela'
-                    img1_ela_dir = '/'.join(cfg.PATH.SEQUENCES2.split('/')[:-1])+'/ela'
+                    img_ela_dir = '/'.join(img_root_dir.split('/')[:-1])+'/ela'
+                    img1_ela_dir = img_ela_dir.replace(cfg.PATH.SEQUENCES, cfg.PATH.SEQUENCES2)
 
                     annot_root_dir = cfg.PATH.ANNOTATIONS
                     img_original_dir = cfg.PATH.ORIGINAL
                 seq_name = img.name
                 img_seq_dir = osp.join(img_root_dir, seq_name)
+                
                 #img_org_dir = osp.join(img_original_dir, seq_name)
                 #annot_seq_dir = osp.join(annot_root_dir, annot.name)
                 annot_seq_dir = osp.join(annot_root_dir, seq_name)
@@ -138,6 +134,7 @@ class MyDataset(data.Dataset):
                 starting_frame_idx = images.index(frame_img)
 
                 max_ii = min(self._length_clip,len(images))
+            
                 #interval = random.randint(1,(len(images)-starting_frame_idx)//5+1)
                 for ii in range(max_ii):
                     

@@ -1,13 +1,3 @@
-# ----------------------------------------------------------------------------
-# The 2017 DAVIS Challenge on Video Object Segmentation
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017 Federico Perazzi
-# Licensed under the BSD License [see LICENSE for details]
-# Written by Federico Perazzi (federico@disneyresearch.com)
-# ----------------------------------------------------------------------------
-
-__author__ = 'federico perazzi'
-__version__ = '2.0.0'
 
 ########################################################################
 #
@@ -63,19 +53,7 @@ class DAVISLoader(MyDataset):
                  use_prev_mask = False,
                  use_ela=False):
 
-    if split =='val':
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/val'
-      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/val'
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Copy-and-Paste-Networks-for-Deep-Video-Inpainting/val'
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/vi_davis'
-      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/val_mask'
-    else:
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Deep-Video-Inpainting/results/vi_davis/train'
-      cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/opn-demo/vi_davis/train'
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/Copy-and-Paste-Networks-for-Deep-Video-Inpainting/train'
-
-      #cfg.PATH.SEQUENCES = '/vulcan/scratch/pengzhou/model/vi_completion/train'
-      #cfg.PATH.ANNOTATIONS = '/vulcan/scratch/pengzhou/model/vi_completion/train_mask'
+    
     self._year  = args.year
     self._phase = split
     self._single_object = args.single_object
@@ -90,7 +68,13 @@ class DAVISLoader(MyDataset):
     self.flip = augment
     self.use_prev_mask = use_prev_mask
     self.ela = use_ela
-    
+    if cfg.PATH.SEQUENCES.split('/')[-1] in ['train', 'val', 'trainval']:
+      cfg.PATH.SEQUENCES = '/'.join(cfg.PATH.SEQUENCES.split('/')[:-1])+'/' + self.split
+      cfg.PATH.SEQUENCES2 = '/'.join(cfg.PATH.SEQUENCES2.split('/')[:-1])+'/' + self.split    
+    else:
+      cfg.PATH.SEQUENCES = cfg.PATH.SEQUENCES + '/' + self.split
+      cfg.PATH.SEQUENCES2 = cfg.PATH.SEQUENCES2 + '/' + self.split
+    print(cfg.PATH.SEQUENCES,cfg.PATH.SEQUENCES2)
     if augment:
         if self._length_clip == 1:
             self.augmentation_transform = RandomAffine(rotation_range=args.rotation,
@@ -155,7 +139,7 @@ class DAVISLoader(MyDataset):
         if self.use_prev_mask == False:
 
             images = seq.files
-            #pdb.set_trace()
+            
             starting_frame_idx = 0
 
             starting_frame = int(osp.splitext(osp.basename(images[starting_frame_idx]))[0])
@@ -187,12 +171,12 @@ class DAVISLoader(MyDataset):
     for annot, s in zip(self.annotations, self._db_sequences):
 
         images = annot.files
-        #try:
-        starting_frame_idx = 0
-        starting_frame = int(osp.splitext(osp.basename(images[starting_frame_idx]))[0])
-        #except:
-          #print(s.name)
-          #pdb.set_trace()
+        try:
+          starting_frame_idx = 0
+          starting_frame = int(osp.splitext(osp.basename(images[starting_frame_idx]))[0])
+        except:
+          print(s.name)
+          pdb.set_trace()
         self.annotation_clips.append(AnnotationClip_simple(annot, starting_frame))
         num_frames = self.annotation_clips[-1]._numframes
         num_clips = int(num_frames / self._length_clip)
