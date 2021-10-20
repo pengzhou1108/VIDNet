@@ -1,6 +1,9 @@
 # VIDNet
+Code for the [VIDNet](https://arxiv.org/pdf/2101.11080.pdf) (BMVC 2021)
 
 ## Installation
+
+The base code is from [RVOS](https://github.com/imatge-upc/rvos).
 
 - Install requirements ```pip install -r requirements.txt``` 
 
@@ -52,5 +55,15 @@ For FVI evaluation:
  3. run ```eval_fvi.sh```
 
 
+## Citation
+If this code or dataset helps your research, please cite our paper:
 
+```
+@inproceedings{zhou2021vid,
+  title={Deep Video Inpainting Detection},
+  author={Zhou, Peng and Yu, Ning and Wu, Zuxuan and Davis, Larry S and Shrivastava, Abhinav and Lim, Ser Nam},
+  booktitle = {BMVC},
+  year={2021}
+}
+```
 
