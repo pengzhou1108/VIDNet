@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from args import get_parser
 from utils.utils import batch_to_var, batch_to_var_test, make_dir, outs_perms_to_cpu, load_checkpoint, check_parallel
 from modules.model import RSIS, FeatureExtractor
-from test import test,test_ela
+from test import test
 from dataloader.dataset_utils import sequence_palette, ela
 from PIL import Image
 from scipy.misc import imread
@@ -20,7 +20,6 @@ from torchvision import transforms
 import torch.utils.data as data
 import sys, os
 import json
-import pdb
 from misc.config import cfg
 from torch.autograd import Variable
 class Sequence:
@@ -68,7 +67,6 @@ class Sequence:
 
     def load_frames(self):
         for frame_name in self.frames_list:
-            #pdb.set_trace()
             frame_path = os.path.join(self.frames_path, frame_name)
             img, img_ela = self.load_frame(frame_path)
             self.imgs_data.append(img)
@@ -137,10 +135,6 @@ class Evaluate():
                                          std=[0.229, 0.224, 0.225])
 
         image_transforms = transforms.Compose([to_tensor,normalize])
-        #image_transforms = transforms.Compose([to_tensor])
-
-
-        #self.loader = Sequence(args, seq_name)
 
         self.args = args
 
@@ -149,7 +143,7 @@ class Evaluate():
         load_args.use_gpu = args.use_gpu
         self.encoder = FeatureExtractor(load_args)
         self.decoder = RSIS(load_args)
-        #pdb.set_trace()
+
         print(load_args)
 
         if args.ngpus > 1 and args.use_gpu:
@@ -199,17 +193,13 @@ class Evaluate():
                 colors.append(c)
 
         if self.split == 'val':
-            
-
-
             masks_sep_dir = os.path.join('../models', args.model_name, 'masks_'+args.frames_path.split('/')[-3])
-            #masks_sep_dir = os.path.join('../models', args.model_name, 'masks_sep_2assess-davis')
             make_dir(masks_sep_dir)
             if args.overlay_masks:
                 results_dir = os.path.join('../models', args.model_name, 'results-'+args.frames_path.split('/')[-3])
                 make_dir(results_dir)
-            files = glob.glob('../../model/Free-Form-Video-Inpainting/FVI/Test/JPEGImages/*') #FIXME
-            for seq_names in files:
+            folders = glob.glob(os.path.join(args.frames_path, '*'))
+            for seq_names in folders:
                 
                 seq_name = seq_names.split('/')[-1]
                 seq = Sequence(args, seq_name)
@@ -224,22 +214,13 @@ class Evaluate():
                         base_dir = results_dir + '/' + seq_name[0] + '/'
                         make_dir(base_dir)
                     
-                    #for ii in range(max_ii):
-
-                    #                x: input images (N consecutive frames from M different sequences)
-                    #                y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
-                    #                sw_mask: this mask indicates which masks from y_mask are valid
-                    #x, y_mask, sw_mask = batch_to_var(args, inputs[ii], targets[ii])
                     x = batch_to_var_test(args, img).unsqueeze(0)
                     x_ela = Variable(img_ela,requires_grad=False).cuda().unsqueeze(0)
-                    #x_cat = torch.cat([x,x_ela], 1)
-                    #x_cat = x_ela
                     print(seq_name[0] + '/' + '%05d' % (ii))
                     
-                    #from one frame to the following frame the prev_hidden_temporal_list is updated.
-                    #outs, hidden_temporal_list = test_ela(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
+                    #From one frame to the following frame the prev_hidden_temporal_list is updated.
+                    #Assume ELA frame is provided
                     outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
-                    #outs, hidden_temporal_list = test_edge(args, self.encoder, self.decoder, x_cat, prev_hidden_temporal_list)
 
 
                     num_instances = 1
@@ -268,7 +249,6 @@ class Evaluate():
                         plt.figure();plt.axis('off')
                         plt.figure();plt.axis('off')
                         plt.imshow(frame_img)
-                        #pdb.set_trace()
                         for t in range(num_instances):
                             
                             mask_pred = (torch.squeeze(outs[0,t,:])).cpu().numpy()
@@ -303,7 +283,6 @@ if __name__ == "__main__":
 
     if not args.log_term:
         print ("Eval logs will be saved to:", os.path.join('../models',args.model_name, 'eval.log'))
-        #sys.stdout = open(os.path.join('../models',args.model_name, 'eval.log'), 'w')
 
     E = Evaluate(args)
     E.run_eval()

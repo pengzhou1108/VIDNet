@@ -19,7 +19,6 @@ from torchvision import transforms
 import torch.utils.data as data
 import sys, os
 import json
-import pdb
 from misc.config import cfg
 from torch.autograd import Variable
 
@@ -67,7 +66,6 @@ class Evaluate():
         load_args.use_gpu = args.use_gpu
         self.encoder = FeatureExtractor(load_args)
         self.decoder = RSIS(load_args)
-        #pdb.set_trace()
         print(load_args)
 
         if args.ngpus > 1 and args.use_gpu:
@@ -132,7 +130,6 @@ class Evaluate():
                 
                 prev_hidden_temporal_list = None
                 max_ii = min(len(inputs),args.length_clip)
-                #pdb.set_trace()
                 base_dir_masks_sep = masks_sep_dir + '/' + seq_name[0] + '/'
                 make_dir(base_dir_masks_sep)
 
@@ -142,18 +139,15 @@ class Evaluate():
                 
                 for ii in range(max_ii):
 
-                    #                x: input images (N consecutive frames from M different sequences)
-                    #                y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
-                    #                sw_mask: this mask indicates which masks from y_mask are valid
+                    #x: input images (N consecutive frames from M different sequences)
+                    #y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
+                    #sw_mask: this mask indicates which masks from y_mask are valid
                     x, y_mask, sw_mask = batch_to_var(args, inputs[ii], targets[ii])
                     x_ela = Variable(imgs_ela[ii],requires_grad=False).cuda()
-                    #x_cat = torch.cat([x,x_ela], 1)
-                    #x_cat = x_ela
                     print(seq_name[0] + '/' + '%05d' % (starting_frame[0] + ii))
                     
                     #from one frame to the following frame the prev_hidden_temporal_list is updated.
                     outs, hidden_temporal_list = test_ela(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
-                    #outs, hidden_temporal_list = test_edge(args, self.encoder, self.decoder, x_cat, prev_hidden_temporal_list)
 
 
                     num_instances = int(torch.sum(sw_mask.data).data.cpu().numpy())
@@ -169,8 +163,6 @@ class Evaluate():
                         mask2assess[indxs_instance] = 255
                         toimage(mask2assess, cmin=0, cmax=255).save(
                             base_dir_masks_sep + '%05d_instance_%02d.png' % (starting_frame[0] + ii, t))
-                        #pdb.set_trace()
-                        #toimage(mask_pred*255, cmin=0, cmax=255).save(base_dir_masks_sep + '%05d_rawscore_%02d.png' % (starting_frame[0] + ii, t))
                         np.save(base_dir_masks_sep + '%05d_rawscore_%02d.npy' % (starting_frame[0] + ii, t),mask_pred)
                     if args.overlay_masks:
 
@@ -184,7 +176,6 @@ class Evaluate():
                         plt.figure();plt.axis('off')
                         plt.figure();plt.axis('off')
                         plt.imshow(frame_img)
-                        #pdb.set_trace()
                         for t in range(num_instances):
                             
                             mask_pred = (torch.squeeze(outs[0,t,:])).cpu().numpy()
@@ -220,15 +211,12 @@ class Evaluate():
                 
                 for ii in range(max_ii):
 
-                    #                x: input images (N consecutive frames from M different sequences)
+                    #x: input images (N consecutive frames from M different sequences)
                     x = batch_to_var_test(args, inputs[ii])
 
                     print(seq_name[0] + '/' +  '%05d' %(starting_frame[0] + ii))
                     
                     if ii==0:
-                        
-
-                        
                         annotation = Image.open('../databases/DAVIS2016/Annotations/480p/' + seq_name[0] + '/00000.png')
                         instance_ids = sorted(np.unique(annotation))
                         instance_ids = instance_ids if instance_ids[0] else instance_ids[1:]
@@ -303,7 +291,6 @@ if __name__ == "__main__":
 
     if not args.log_term:
         print ("Eval logs will be saved to:", os.path.join('../models',args.model_name, 'eval.log'))
-        #sys.stdout = open(os.path.join('../models',args.model_name, 'eval.log'), 'w')
 
     E = Evaluate(args)
     E.run_eval()

@@ -108,8 +108,6 @@ class MyDataset(data.Dataset):
                 seq_name = img.name
                 img_seq_dir = osp.join(img_root_dir, seq_name)
                 
-                #img_org_dir = osp.join(img_original_dir, seq_name)
-                #annot_seq_dir = osp.join(annot_root_dir, annot.name)
                 annot_seq_dir = osp.join(annot_root_dir, seq_name)
                 starting_frame = img.starting_frame
 
@@ -118,7 +116,6 @@ class MyDataset(data.Dataset):
                 imgs_org = []
                 targets = []
                 targets_edge = []
-                #imgs_flow = []
                 imgs_ela = []
                 imgs1_ela = []                
 
@@ -129,31 +126,25 @@ class MyDataset(data.Dataset):
                     images = [f for f in img._files]
                 else:
                     images = [str(f.decode()) for f in img._files]
-                #frame_img = osp.join(img_seq_dir,'%05d.jpg' % starting_frame)
+
                 frame_img = osp.join(img_seq_dir,'%05d.png' % starting_frame)
                 starting_frame_idx = images.index(frame_img)
 
                 max_ii = min(self._length_clip,len(images))
             
-                #interval = random.randint(1,(len(images)-starting_frame_idx)//5+1)
                 for ii in range(max_ii):
                     
                     frame_idx = starting_frame_idx + ii#*interval
                     frame_idx = int(osp.splitext(osp.basename(images[frame_idx]))[0])
                 
-                    #frame_img = osp.join(img_seq_dir,'%05d.jpg' % frame_idx)
-                    #try:
                     frame_img = osp.join(img_seq_dir,'%05d.png' % frame_idx)
 
                     img = Image.open(frame_img)
                     img1 = Image.open(frame_img.replace(cfg.PATH.SEQUENCES,cfg.PATH.SEQUENCES2))
                     img_org = Image.open(frame_img.replace(cfg.PATH.SEQUENCES,cfg.PATH.ORIGINAL).replace('.png','.jpg'))
-                    #img_flow = readFlow(frame_img.replace(cfg.PATH.SEQUENCES, cfg.PATH.FLOW).replace('png','flo'))
                     
                     frame_annot = osp.join(annot_seq_dir,'%05d.png' % frame_idx)
                     annot = Image.open(frame_annot).convert('L')
-                    #except:
-                        #print(frame_img, frame_annot)
                     img_ela = Image.open(frame_img.replace(cfg.PATH.SEQUENCES,img_ela_dir))
                     img1_ela = Image.open(frame_img.replace(cfg.PATH.SEQUENCES,img1_ela_dir))
 
@@ -163,20 +154,12 @@ class MyDataset(data.Dataset):
                         img = imresize(img, self.inputRes)
                         img1 = imresize(img1, self.inputRes)
                         img_org = imresize(img_org, self.inputRes)
-                        #img_flow = np.transpose(np.resize(img_flow, (self.inputRes[0],self.inputRes[1],2)),(2,0,1))
-                        #print(frame_annot, annot.size)
-                        #annot = imresize(annot, self.inputRes, interp='nearest')
-                        #annot = imresize(np.array(annot), self.inputRes)
                         annot = np.array(annot.resize((self.inputRes[1],self.inputRes[0])))
 
                         img_ela = imresize(img_ela, self.inputRes)
                         img1_ela = imresize(img1_ela, self.inputRes)                        
 
-                    #img_ela = np.zeros(img.shape)
-                    #img1_ela = np.zeros(img1.shape)
-
-                    #img_ela = separable_mf(img)
-                    #img1_ela = separable_mf(img1)
+                    # Add noise or JPEG perturbation
                     if False and interp_clip<0.5:
                         img = random_noise(img)
                         img1 = random_noise(img1)
@@ -214,10 +197,9 @@ class MyDataset(data.Dataset):
                         img_org = np.flip(img_org.numpy(),axis=2).copy()
                         img_org = torch.from_numpy(img_org)                        
                         annot = np.flip(annot,axis=2).copy()
-                        #img_flow = np.flip(img_flow,axis=2).copy()
-                        #img_flow = torch.from_numpy(img_flow)
 
-                    if True and random.random()<0.5 and self.split=='train':
+
+                    if random.random()<0.5 and self.split=='train':
                         img = (img.numpy()*interp_clip+(1-interp_clip)*img1.numpy()).copy()
                         img = torch.from_numpy(img)
                         img1 = (img.numpy()*(1-interp_clip)+interp_clip*img1.numpy()).copy()
@@ -228,33 +210,25 @@ class MyDataset(data.Dataset):
                         img1_ela = (img_ela.numpy()*(1-interp_clip)+interp_clip*img1_ela.numpy()).copy()
                         img1_ela = torch.from_numpy(img1_ela)    
 
-                    #edge_annot = binary_dilation(annot[0],structure=np.ones((5,5))).astype(annot.dtype) - binary_erosion(annot[0],structure=np.ones((5,5))).astype(annot.dtype)
+
                     annot = torch.from_numpy(annot)
                     annot = annot.float()
-
-                    #edge_annot = torch.from_numpy((edge_annot)[np.newaxis,:,:])
-                    #edge_annot = edge_annot.float()        
+     
                     if self.augmentation_transform is not None and self._length_clip == 1:
                         img, annot= self.augmentation_transform(img, annot)
 
                     elif self.augmentation_transform is not None and self._length_clip > 1 and ii == 0:
                         tf_matrix = self.augmentation_transform(img)
                         tf_function = Affine(tf_matrix,interp='nearest')
-                        #img, annot = tf_function(img,annot)
                         img, annot, img1, img_org = tf_function(img,annot,img1,img_org,img_flow)
                     elif self.augmentation_transform is not None and self._length_clip > 1 and ii > 0:
-                        #try:
-                        #img, annot = tf_function(img,annot)
                         img, annot, img1, img_org = tf_function(img,annot,img1,img_org,img_flow)
-                        #except:
-                            #print(annot.shape, frame_annot)
+
                                             
                     annot = annot.numpy().squeeze() 
 
                     target = self.sequence_from_masks(seq_name,annot)
 
-                    #edge_annot = edge_annot.numpy().squeeze()   
-                    #target_edge = self.sequence_from_masks(seq_name,edge_annot)
                     if self.target_transform is not None:
                         target = self.target_transform(target)
                     
@@ -262,15 +236,12 @@ class MyDataset(data.Dataset):
                     imgs1.append(img1)
                     imgs_org.append(img_org)
                     targets.append(target)
-                    #targets_edge.append(target_edge)
                     imgs_flow = []
-                    #imgs_flow.append(img_flow)
                     imgs_ela.append(img_ela)
                     imgs1_ela.append(img1_ela)                    
 
                                     
                 return imgs, imgs1, imgs_org, targets, seq_name, starting_frame, imgs_flow, imgs_ela, imgs1_ela
-                #return imgs, targets, seq_name, starting_frame
             else:
                 edict = self.get_raw_sample_clip(index)
                 img = edict['images']
@@ -343,10 +314,6 @@ class MyDataset(data.Dataset):
                 instance_ids.append(int(id))
         else:
             instance_ids = np.unique(annot)[1:]
-            #print(instance_ids)
-            #In DAVIS 2017, some objects not present in the initial frame are annotated in some future frames with ID 255. We discard any id with value 255.
-            #if len(instance_ids) > 0:
-                    #instance_ids = instance_ids[:-1] if instance_ids[-1]==255 else instance_ids
 
         h = annot.shape[0]
         w = annot.shape[1]
@@ -354,22 +321,17 @@ class MyDataset(data.Dataset):
         total_num_instances = len(instance_ids)
         max_instance_id = 0
         if total_num_instances > 0:
-            #max_instance_id = int(np.max(instance_ids))
             max_instance_id = 1
         num_instances = max(self.max_seq_len,max_instance_id)
 
         gt_seg = np.zeros((num_instances, h*w))
         size_masks = np.zeros((num_instances,)) # for sorting by size
         sample_weights_mask = np.zeros((num_instances,1))
-        #print(total_num_instances)
         for i in range(total_num_instances):
 
             id_instance = int(instance_ids[i])
             aux_mask = np.zeros((h, w))
             aux_mask[annot==id_instance] = 1
-            #gt_seg[id_instance-1,:] = np.reshape(aux_mask,h*w)
-            #size_masks[id_instance-1] = np.sum(gt_seg[id_instance-1,:])
-            #sample_weights_mask[id_instance-1] = 1
             gt_seg[i,:] = np.reshape(aux_mask,h*w)
             size_masks[i] = np.sum(gt_seg[i,:])
             sample_weights_mask[i] = 1

@@ -27,7 +27,6 @@ import sys
 from PIL import Image
 import pickle
 import random
-import pdb
 import torch.nn.functional as F
 
 warnings.filterwarnings("ignore")
@@ -42,8 +41,6 @@ def init_dataloaders(args):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
         image_transforms = transforms.Compose([to_tensor, normalize])
-
-        #image_transforms = transforms.Compose([to_tensor])
                               
         if args.dataset == 'davis2016' or args.dataset == 'davis2016_vi':
             dataset = get_dataset(args,
@@ -211,16 +208,7 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
 
     loss_mask_iou1 = mask_siou(y_mask_perm.view(-1,y_mask_perm.size()[-1]),out_masks1.view(-1,out_masks1.size()[-1]))
     loss_mask_iou1 = torch.mean(loss_mask_iou1)
-
-
-
-
-    if False:
-        loss_edge_iou = edge_bce(y_edge_perm.view(-1,y_edge_perm.size()[-1]),edge_masks.view(-1,edge_masks.size()[-1]))
-        loss_edge_iou = torch.mean(loss_edge_iou)
-
-        loss_edge_iou1 = edge_bce(y_edge_perm.view(-1,y_edge_perm.size()[-1]),edge_masks1.view(-1,edge_masks1.size()[-1]))
-        loss_edge_iou1 = torch.mean(loss_edge_iou1)    
+  
     # total loss is the weighted sum of all terms
     if loss is None:
         loss = args.iou_weight * loss_mask_iou + args.iou_weight * loss_mask_iou1 #+ loss_edge_iou +loss_edge_iou1
@@ -246,9 +234,6 @@ def runIter(args, encoder, decoder, x,x_ela, x1,x1_ela, y_mask,y_edge, sw_mask,
     outs = out_masks.data
     out_masks1 = torch.sigmoid(out_masks1)
     outs1 = out_masks1.data
-
-    #edge_masks = torch.sigmoid(edge_masks)
-    #outs_edge = edge_masks.data
     outs_edge = None
 
     del loss_mask_iou, loss_mask_iou1, feats,feats1, x, x1, y_mask, sw_mask, y_mask_perm
@@ -304,7 +289,6 @@ def trainIters(args):
     decoder_params = list(decoder.parameters()) + list(skip_params)
     dec_opt = get_optimizer(args.optim, args.lr, decoder_params, args.weight_decay)
     enc_opt = get_optimizer(args.optim_cnn, args.lr_cnn, encoder_params, args.weight_decay_cnn)
-    #pdb.set_trace()
     if args.resume:
         enc_opt.load_state_dict(enc_opt_dict)
         dec_opt.load_state_dict(dec_opt_dict)
@@ -328,7 +312,6 @@ def trainIters(args):
         encoder.cuda()
         decoder.cuda()
         mask_siou.cuda()
-        #edge_bce.cuda()
     if args.ngpus > 1 and args.use_gpu:
         decoder = torch.nn.DataParallel(decoder, device_ids=range(args.ngpus))
         encoder = torch.nn.DataParallel(encoder, device_ids=range(args.ngpus))
@@ -355,8 +338,6 @@ def trainIters(args):
     writer = SummaryWriter(model_dir)
     tensorboard_step = 0
     for e in range(args.max_epoch):
-        #scheduler.step(e)
-        #de_scheduler.step(e)
         print ("Epoch", e + epoch_resume)
         # store losses in lists to display average since beginning
         epoch_losses = {'train': {'total': [], 'iou': []},
@@ -375,7 +356,6 @@ def trainIters(args):
         for split in ['train', 'val']:
             if args.dataset == 'davis2016' or args.dataset == 'davis2016_vi':
                 for batch_idx, (inputs,inputs1, inputs_org, targets,seq_name,starting_frame, imgs_flow,imgs_ela,imgs1_ela) in enumerate(loaders[split]):
-                #for batch_idx, (inputs,inputs1, inputs_org, targets,seq_name,starting_frame, imgs_flow) in enumerate(loaders[split]):
                     # send batch to GPU
                  
                     prev_hidden_temporal_list = None
@@ -389,9 +369,9 @@ def trainIters(args):
                         #If are on the last frame from a clip, we will have to backpropagate the loss back to the beginning of the clip.
                         if ii == max_ii-1:
                             last_frame = True
-                        #                x: input images (N consecutive frames from M different sequences)
-                        #                y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
-                        #                sw_mask: this mask indicates which masks from y_mask are valid
+                        #x: input images (N consecutive frames from M different sequences)
+                        #y_mask: ground truth annotations (some of them are zeros to have a fixed length in number of object instances)
+                        #sw_mask: this mask indicates which masks from y_mask are valid
                         x, x1, y_mask, sw_mask = batch_to_var_vi(args, inputs[ii],inputs1[ii], targets[ii], input_org=None)
                         target_edge = y_mask.view(y_mask.shape[0],y_mask.shape[1],x.shape[-2],x.shape[-1])
                         target_edge = torch.clamp(F.conv2d(target_edge, kernel_tensor, padding=(2, 2)), 0, 1) * torch.clamp(F.conv2d((1-target_edge).float(), kernel_tensor, padding=(2, 2)), 0, 1)
@@ -410,12 +390,9 @@ def trainIters(args):
                             x_im = vutils.make_grid([inv_normalize(k) for k in x], normalize=True, scale_each=True)
                             x1_im = vutils.make_grid([inv_normalize(k) for k in x1], normalize=True, scale_each=True)
 
-                            x_ela_im = vutils.make_grid([inv_normalize(k) for k in x_ela], normalize=True, scale_each=True)
-                            #x_im = vutils.make_grid(x, normalize=True, scale_each=True)
-                            #x1_im = vutils.make_grid( x1, normalize=True, scale_each=True)                            
+                            x_ela_im = vutils.make_grid([inv_normalize(k) for k in x_ela], normalize=True, scale_each=True)                      
 
                             x_o = vutils.make_grid(outs.view(outs.shape[0],1,x.shape[-2],x.shape[-1]), normalize=True, scale_each=True)
-                            #x_r = vutils.make_grid(outs[:,1,:].view(outs.shape[0],1,x.shape[-2],x.shape[-1]), normalize=True, scale_each=True)
                             x_m = vutils.make_grid(y_mask.view(y_mask.shape[0],y_mask.shape[1],x.shape[-2],x.shape[-1]), normalize=True, scale_each=True)
                             
                             writer.add_image('images_1', x1_im, tensorboard_step)
@@ -475,7 +452,6 @@ def trainIters(args):
             best_val_loss = mt
             args.best_val_loss = best_val_loss
             # saves model, params, and optimizers
-            #save_checkpoint(args, encoder, decoder, enc_opt, dec_opt)
             save_checkpoint(args, encoder, decoder, enc_opt, dec_opt,epoch=args.epoch_resume)
             acc_patience = 0
         elif args.epoch_resume==args.max_epoch-1:
@@ -511,6 +487,5 @@ if __name__ == "__main__":
     gpu_id = args.gpu_id
     if args.use_gpu:
         torch.cuda.set_device(device=gpu_id)
-        #torch.cuda.set_device(args.local_rank)
         torch.cuda.manual_seed(args.seed)
     trainIters(args)

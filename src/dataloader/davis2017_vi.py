@@ -94,7 +94,7 @@ class DAVISLoader(MyDataset):
         self.augmentation_transform = None
 
     assert args.year == "2017" or args.year == "2016"
-    #pdb.set_trace()
+    
     # check the phase
     if args.year == '2016' and False:
       if not (self._phase == phase.TRAIN.name or self._phase == phase.VAL.name or \
@@ -164,19 +164,16 @@ class DAVISLoader(MyDataset):
             starting_frame = int(osp.splitext(osp.basename(annotations[0]))[0])
             #self.sequence_clips.append(SequenceClip(self._phase, s.name, starting_frame, lmdb_env=lmdb_env_seq))
             self.sequence_clips.append(SequenceClip(self._phase, s.name, starting_frame, regex='*.png', lmdb_env=lmdb_env_seq))
-    #pdb.set_trace()
+    
     # Load annotations
     self.annotation_clips = []
     self._db_sequences = db_read_sequences(args.year,self._phase)
     for annot, s in zip(self.annotations, self._db_sequences):
 
         images = annot.files
-        try:
-          starting_frame_idx = 0
-          starting_frame = int(osp.splitext(osp.basename(images[starting_frame_idx]))[0])
-        except:
-          print(s.name)
-          pdb.set_trace()
+
+        starting_frame_idx = 0
+        starting_frame = int(osp.splitext(osp.basename(images[starting_frame_idx]))[0])
         self.annotation_clips.append(AnnotationClip_simple(annot, starting_frame))
         num_frames = self.annotation_clips[-1]._numframes
         num_clips = int(num_frames / self._length_clip)
@@ -188,7 +185,7 @@ class DAVISLoader(MyDataset):
 
     self._keys = dict(zip([s for s in self.sequences],
       range(len(self.sequences))))
-    #pdb.set_trace()
+    
     self._keys_clips = dict(zip([s.name+str(s.starting_frame) for s in self.sequence_clips],
       range(len(self.sequence_clips))))  
       

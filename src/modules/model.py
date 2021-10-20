@@ -10,7 +10,6 @@ import math
 from .vision import VGG16, ResNet34, ResNet50, ResNet101,VGG16_BN
 import sys
 from .aspp import build_aspp, _ASPPModule
-import pdb
 sys.path.append("..")
 from utils.utils import get_skip_dims
 from .unet_parts import *
@@ -76,14 +75,12 @@ class FeatureExtractor_segment(nn.Module):
 
     def forward(self,x,semseg=False, raw = False):
         x5,x4,x3,x2,x1 = self.base(x)
-        #pdb.set_trace()
 
         if semseg:
             return x5
         elif raw:
             return x5, x4, x3, x2, x1
         else:
-            #return total_feats
             x5_skip = self.bn5(self.sk5(x5))
             x4_skip = self.bn4(self.sk4(x4))
             x3_skip = self.bn3(self.sk3(x3))
@@ -174,10 +171,6 @@ class FeatureExtractor(nn.Module):
 
 
     def forward(self,x,semseg=False, raw = False, x_ela=None):
-        # HPF loss pass filter
-        #x5,x4,x3,x2,x1 = self.base(x[:,:3,:,:],mask=x[:,3:,:,:])
-        #x_noise = self.noise_filter(x)
-
         x5,x4,x3,x2,x1 = self.base(x)
         if x_ela is not None:
 
@@ -339,8 +332,6 @@ class RSIS(nn.Module):
         self.skip_mode = args.skip_mode
 
         # convlstms have decreasing dimension as width and height increase
-        #skip_dims_out = [self.hidden_size, int(self.hidden_size/2),
-                         #int(self.hidden_size/4),int(self.hidden_size/8)]
         skip_dims_out = [self.hidden_size, int(self.hidden_size/2),
                          int(self.hidden_size/4),int(self.hidden_size/8),int(self.hidden_size/16)]
                          
