@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from args import get_parser
 from utils.utils import batch_to_var, batch_to_var_test, make_dir, outs_perms_to_cpu, load_checkpoint, check_parallel
 from modules.model import RSIS, FeatureExtractor
-from test import test,test_ela
+from test import test
 from dataloader.dataset_utils import sequence_palette
 from PIL import Image
 from scipy.misc import imread
