@@ -147,7 +147,7 @@ class Evaluate():
                     print(seq_name[0] + '/' + '%05d' % (starting_frame[0] + ii))
                     
                     #from one frame to the following frame the prev_hidden_temporal_list is updated.
-                    outs, hidden_temporal_list = test_ela(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
+                    outs, hidden_temporal_list = test(args, self.encoder, self.decoder, x, prev_hidden_temporal_list,x_ela=x_ela)
 
 
                     num_instances = int(torch.sum(sw_mask.data).data.cpu().numpy())
